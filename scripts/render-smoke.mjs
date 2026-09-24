@@ -66,6 +66,14 @@ try {
   check('login page has email + password fields', pages.login.includes('you@example.com') && pages.login.includes('type="password"'))
   check('register page renders confirm field', pages.register.includes('Confirm password') && pages.register.includes('Create account'))
   check('auth tabs switch between states', pages.login.includes('Create account') && pages.register.includes('Sign in instead'))
+  check(
+    'login page renders the shared theme switcher',
+    pages.login.includes('Switch to light mode') || pages.login.includes('Switch to dark mode'),
+  )
+  check(
+    'register page renders the shared theme switcher',
+    pages.register.includes('Switch to light mode') || pages.register.includes('Switch to dark mode'),
+  )
 
   check('dashboard renders navbar + logout', pages.dashboard.includes('Cloud ClipBoard') && pages.dashboard.includes('Logout'))
   check(

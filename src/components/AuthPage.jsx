@@ -17,6 +17,7 @@ import {
 import { API_BASE_URL, getApiErrorMessage } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { ClayButton } from './ui/ClayButton'
+import { ThemeToggleButton } from './ThemeToggleButton'
 import { ClayIconBadge } from './ui/ClayIconBadge'
 import { ClayInput } from './ui/ClayField'
 
@@ -122,6 +123,8 @@ export function AuthPage({ mode = 'login' }) {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+      <ThemeToggleButton className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6" />
+
       {/* Ambient clay blobs */}
       <div
         aria-hidden="true"

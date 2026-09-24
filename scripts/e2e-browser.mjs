@@ -133,19 +133,49 @@ async function run() {
     await page.waitForURL('**/login', { timeout: 45000 }).catch(() => {})
     check('signed-out /dashboard redirects to /login', page.url().endsWith('/login'), page.url())
     await page.waitForSelector('#email', { timeout: 30000 })
-    await screenshot(page, 'login')
+
+    const assertAuthThemeToggle = async (routeLabel) => {
+      const toggle = page.getByRole('button', { name: /Switch to (light|dark) mode/ })
+      const box = await toggle.boundingBox()
+      check(
+        `${routeLabel} page exposes a top-right theme toggle`,
+        Boolean(box && box.x > 1100 && box.y < 100),
+        box ? `x=${Math.round(box.x)}, y=${Math.round(box.y)}` : 'not visible',
+      )
+
+      const before = await page.evaluate(() => document.documentElement.dataset.theme || 'dark')
+      await toggle.click()
+      await page.waitForFunction(
+        (previous) => (document.documentElement.dataset.theme || 'dark') !== previous,
+        before,
+        { timeout: 5000 },
+      )
+      const after = await page.evaluate(() => document.documentElement.dataset.theme)
+      check(
+        `${routeLabel} theme toggle updates the active palette`,
+        after === 'light' || after === 'dark',
+        `${before} -> ${after}`,
+      )
+    }
+
+    await assertAuthThemeToggle('login')
+    await screenshot(page, 'login-theme')
+
+    await page.locator('.clay-tab', { hasText: 'Create account' }).click()
+    await page.waitForSelector('#confirmPassword')
+    await assertAuthThemeToggle('register')
+    await screenshot(page, 'register-theme')
 
     /* ---------- 2. auth ---------- */
     if (credentials.fresh) {
-      await page.locator('.clay-tab', { hasText: 'Create account' }).click()
-      await page.waitForSelector('#confirmPassword')
       await page.fill('#email', credentials.email)
       await page.fill('#password', credentials.password)
       await page.fill('#confirmPassword', credentials.password)
-      await screenshot(page, 'register')
       await page.locator('form').getByRole('button', { name: 'Create account' }).click()
       check('registered a new account through the UI', true, credentials.email)
     } else {
+      await page.locator('.clay-tab', { hasText: 'Sign in' }).click()
+      await page.waitForSelector('#confirmPassword', { state: 'detached' })
       await page.fill('#email', credentials.email)
       await page.fill('#password', credentials.password)
       await page.locator('form').getByRole('button', { name: 'Sign in to dashboard' }).click()

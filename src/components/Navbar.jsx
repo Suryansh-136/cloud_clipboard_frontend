@@ -1,19 +1,17 @@
 import { useNavigate } from 'react-router-dom'
-import { CircleUser, Clock, CloudLightning, LogOut, Moon, RefreshCw, Sun } from 'lucide-react'
+import { CircleUser, Clock, CloudLightning, LogOut, RefreshCw } from 'lucide-react'
 
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 import { ClayBadge } from './ui/ClayBadge'
 import { ClayButton } from './ui/ClayButton'
 import { ClayIconBadge } from './ui/ClayIconBadge'
+import { ThemeToggleButton } from './ThemeToggleButton'
 import { formatRelativeTime } from '../utils/format'
 
 /** Sticky clay navbar: brand badge, signed-in email badge and a logout button. */
 export function Navbar({ counts, lastSyncedAt, onRefresh, refreshing = false }) {
   const { user, signOut } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const isLight = theme === 'light'
 
   const handleLogout = () => {
     signOut()
@@ -60,15 +58,7 @@ export function Navbar({ counts, lastSyncedAt, onRefresh, refreshing = false }) 
             />
           ) : null}
 
-          <ClayButton
-            variant="ghost"
-            size="icon-sm"
-            icon={isLight ? Moon : Sun}
-            onClick={toggleTheme}
-            title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-            aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-            aria-pressed={isLight}
-          />
+          <ThemeToggleButton />
 
           <ClayBadge
             tone="indigo"
