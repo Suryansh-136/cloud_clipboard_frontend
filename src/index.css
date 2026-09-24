@@ -1,0 +1,842 @@
+/* ==================================================================
+   Cloud ClipBoard · Claymorphic design system
+   Tailwind CSS v4 (CSS-first configuration)
+   ================================================================== */
+
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   1. Motion primitives (kept outside @theme so they are always emitted)
+   ------------------------------------------------------------------ */
+@keyframes clay-float {
+  0%, 100% { transform: translateY(0) }
+  50%      { transform: translateY(-14px) }
+}
+
+@keyframes clay-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.97) }
+  to   { opacity: 1; transform: translateY(0) scale(1) }
+}
+
+@keyframes clay-shimmer {
+  from { background-position: -200% 0 }
+  to   { background-position: 200% 0 }
+}
+
+@keyframes clay-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.45) }
+  70%  { box-shadow: 0 0 0 14px rgba(99, 102, 241, 0) }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0) }
+}
+
+/* ------------------------------------------------------------------
+   2. Design tokens -> generates Tailwind utilities
+      (bg-clay-900, text-mint, rounded-clay, shadow-clay, animate-float …)
+   ------------------------------------------------------------------ */
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Deep slate / indigo clay palette */
+  --color-clay-950: #05070d;
+  --color-clay-900: #0b0f19;
+  --color-clay-850: #0f172a;
+  --color-clay-800: #131c31;
+  --color-clay-750: #182238;
+  --color-clay-700: #1e293b;
+  --color-clay-600: #2c3a52;
+  --color-clay-500: #475569;
+  --color-clay-400: #64748b;
+  --color-clay-300: #94a3b8;
+  --color-clay-200: #cbd5e1;
+  --color-clay-100: #e2e8f0;
+  --color-clay-50: #f8fafc;
+
+  /* Vibrant accents */
+  --color-indigo-clay: #6366f1;
+  --color-indigo-deep: #4338ca;
+  --color-mint: #34d399;
+  --color-mint-deep: #059669;
+  --color-violet-clay: #a855f7;
+  --color-violet-deep: #7e22ce;
+  --color-rose-clay: #fb7185;
+  --color-rose-deep: #be123c;
+  --color-amber-clay: #fbbf24;
+  --color-sky-clay: #38bdf8;
+
+  --radius-clay: 2rem;
+  --radius-clay-lg: 2.75rem;
+  --radius-clay-pill: 999px;
+
+  /* The canonical claymorphic shadows from the spec */
+  --shadow-clay: 8px 8px 16px #090d16, -8px -8px 16px #1e293b;
+  --shadow-clay-sm: 5px 5px 10px #080c14, -5px -5px 10px #1b2438;
+  --shadow-clay-lg: 14px 14px 30px #06090f, -12px -12px 28px #22314c;
+  --shadow-clay-inset: inset 4px 4px 10px #070a11, inset -4px -4px 10px #1e293b;
+  --shadow-clay-inset-sm: inset 2px 2px 6px #070a11, inset -2px -2px 6px #1c2740;
+  --shadow-glow-indigo: 0 18px 40px -18px rgba(99, 102, 241, 0.75);
+  --shadow-glow-mint: 0 18px 40px -18px rgba(52, 211, 153, 0.7);
+  --shadow-glow-violet: 0 18px 40px -18px rgba(168, 85, 247, 0.7);
+  --shadow-glow-rose: 0 18px 40px -18px rgba(251, 113, 133, 0.7);
+
+  --animate-float: clay-float 7s ease-in-out infinite;
+  --animate-float-slow: clay-float 11s ease-in-out infinite;
+  --animate-pop: clay-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-ring: clay-pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: clay-shimmer 1.8s linear infinite;
+}
+
+/* ------------------------------------------------------------------
+   3. Base layer
+   ------------------------------------------------------------------ */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+    color: var(--color-clay-200);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    color: #e2e8f0;
+    background-color: #0b0f19;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.18), transparent 45%),
+      radial-gradient(circle at 88% 4%, rgba(168, 85, 247, 0.16), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(52, 211, 153, 0.12), transparent 55%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.45);
+    color: #f8fafc;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  button {
+    cursor: pointer;
+    font: inherit;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  input, textarea, select {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Soft clay scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2c3a52 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #2c3a52;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #3c4d6b;
+    background-clip: content-box;
+  }
+}
+
+/* ------------------------------------------------------------------
+   4. Claymorphic component classes
+   ------------------------------------------------------------------ */
+@layer components {
+  /* ---- Raised clay surfaces -------------------------------------- */
+  .clay-panel {
+    background-image: linear-gradient(150deg, #16203a 0%, #101827 55%, #0d1322 100%);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    box-shadow:
+      14px 14px 30px #06090f,
+      -12px -12px 28px #22314c,
+      inset 1px 1px 1px rgba(255, 255, 255, 0.06),
+      inset -2px -2px 6px rgba(0, 0, 0, 0.35);
+  }
+
+  .clay-card {
+    background-image: linear-gradient(150deg, #17213a 0%, #101827 60%, #0e1424 100%);
+    border: 1px solid rgba(148, 163, 184, 0.09);
+    box-shadow:
+      10px 10px 22px #06090f,
+      -10px -10px 22px #1f2c47,
+      inset 1px 1px 1px rgba(255, 255, 255, 0.05),
+      inset -2px -2px 6px rgba(0, 0, 0, 0.32);
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s ease;
+  }
+
+  .clay-card-hover:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      16px 16px 34px #05080e,
+      -12px -12px 26px #24334f,
+      inset 1px 1px 1px rgba(255, 255, 255, 0.07),
+      inset -2px -2px 6px rgba(0, 0, 0, 0.32);
+  }
+
+  /* ---- Pressed / inset clay surfaces ----------------------------- */
+  .clay-inset {
+    background: #0c111f;
+    border: 1px solid rgba(15, 23, 42, 0.9);
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1d2942;
+  }
+
+  .clay-inset-sm {
+    background: #0d121f;
+    border: 1px solid rgba(15, 23, 42, 0.85);
+    box-shadow:
+      inset 2px 2px 6px #06090f,
+      inset -2px -2px 6px #1c2740;
+  }
+
+  /* ---- Clay buttons ---------------------------------------------- */
+  .clay-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    transition:
+      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.28s ease,
+      filter 0.2s ease;
+  }
+
+  .clay-btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-2px);
+  }
+
+  .clay-btn:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  .clay-btn:disabled {
+    opacity: 0.55;
+    filter: saturate(0.5);
+    transform: none;
+  }
+
+  .clay-btn:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 3px;
+  }
+
+  .clay-btn-indigo {
+    background-image: linear-gradient(145deg, #818cf8, #4f46e5 62%, #4338ca);
+    color: #f5f7ff;
+    box-shadow:
+      6px 6px 14px #06090f,
+      -5px -5px 12px #24334f,
+      inset 2px 2px 3px rgba(255, 255, 255, 0.45),
+      inset -3px -3px 8px rgba(30, 27, 75, 0.7),
+      0 18px 40px -18px rgba(99, 102, 241, 0.85);
+  }
+
+  .clay-btn-mint {
+    background-image: linear-gradient(145deg, #6ee7b7, #10b981 62%, #059669);
+    color: #04231b;
+    box-shadow:
+      6px 6px 14px #06090f,
+      -5px -5px 12px #24334f,
+      inset 2px 2px 3px rgba(255, 255, 255, 0.5),
+      inset -3px -3px 8px rgba(4, 47, 34, 0.6),
+      0 18px 40px -18px rgba(52, 211, 153, 0.8);
+  }
+
+  .clay-btn-violet {
+    background-image: linear-gradient(145deg, #d8b4fe, #a855f7 60%, #7e22ce);
+    color: #faf5ff;
+    box-shadow:
+      6px 6px 14px #06090f,
+      -5px -5px 12px #24334f,
+      inset 2px 2px 3px rgba(255, 255, 255, 0.45),
+      inset -3px -3px 8px rgba(59, 7, 100, 0.55),
+      0 18px 40px -18px rgba(168, 85, 247, 0.8);
+  }
+
+  .clay-btn-rose {
+    background-image: linear-gradient(145deg, #fda4af, #f43f5e 60%, #be123c);
+    color: #fff1f2;
+    box-shadow:
+      6px 6px 14px #06090f,
+      -5px -5px 12px #24334f,
+      inset 2px 2px 3px rgba(255, 255, 255, 0.4),
+      inset -3px -3px 8px rgba(76, 5, 25, 0.55),
+      0 18px 40px -18px rgba(244, 63, 94, 0.8);
+  }
+
+  .clay-btn-ghost {
+    background-image: linear-gradient(145deg, #1b2438, #111a2c);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.12);
+    box-shadow:
+      6px 6px 14px #06090f,
+      -5px -5px 12px #202e49,
+      inset 1px 1px 1px rgba(255, 255, 255, 0.08),
+      inset -2px -2px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ---- Clay text fields ------------------------------------------ */
+  .clay-field {
+    width: 100%;
+    border-radius: 1.5rem;
+    background: #0c111f;
+    border: 1px solid rgba(15, 23, 42, 0.9);
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1d2942;
+    color: #f1f5f9;
+    transition:
+      box-shadow 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .clay-field::placeholder {
+    color: #5c6b87;
+  }
+
+  .clay-field:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.55);
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1d2942,
+      0 0 0 4px rgba(99, 102, 241, 0.16);
+  }
+
+  .clay-field-invalid,
+  .clay-field-invalid:focus {
+    border-color: rgba(251, 113, 133, 0.65);
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1d2942,
+      0 0 0 4px rgba(244, 63, 94, 0.14);
+  }
+
+  /* ---- Small clay pieces ----------------------------------------- */
+  .clay-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background-image: linear-gradient(145deg, #1a2438, #101827);
+    box-shadow:
+      3px 3px 8px #06090f,
+      -3px -3px 8px #1f2c47,
+      inset 1px 1px 1px rgba(255, 255, 255, 0.07);
+  }
+
+  .clay-icon-badge {
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      6px 6px 14px #06090f,
+      -5px -5px 12px #24334f,
+      inset 2px 2px 3px rgba(255, 255, 255, 0.16),
+      inset -3px -3px 8px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ---- Tab switch ------------------------------------------------ */
+  .clay-tab-track {
+    background: #0b101d;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1c2740;
+  }
+
+  .clay-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #93a3ba;
+    transition:
+      transform 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .clay-tab:hover {
+    color: #dbe3ef;
+  }
+
+  .clay-tab:active {
+    transform: scale(0.96);
+  }
+
+  .clay-tab-active {
+    color: #f8fafc;
+    background-image: linear-gradient(145deg, #1e2a45, #131c31);
+    box-shadow:
+      5px 5px 12px #05080e,
+      -5px -5px 12px #24334f,
+      inset 2px 2px 3px rgba(255, 255, 255, 0.12),
+      inset -3px -3px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ---- Dropzone -------------------------------------------------- */
+  .clay-dropzone {
+    border: 2px dashed rgba(99, 102, 241, 0.32);
+    border-radius: 1.75rem;
+    background: #0c111f;
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1d2942;
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.3s ease,
+      transform 0.25s ease,
+      background 0.3s ease;
+  }
+
+  .clay-dropzone:hover {
+    border-color: rgba(129, 140, 248, 0.55);
+  }
+
+  .clay-dropzone-active {
+    border-color: #34d399;
+    transform: scale(1.01);
+    background: #0d1622;
+    box-shadow:
+      inset 4px 4px 10px #06090f,
+      inset -4px -4px 10px #1d2942,
+      0 0 0 5px rgba(52, 211, 153, 0.16);
+  }
+
+  /* ---- Progress -------------------------------------------------- */
+  .clay-progress-track {
+    height: 0.85rem;
+    border-radius: 999px;
+    background: #0a0e19;
+    box-shadow:
+      inset 3px 3px 7px #05080e,
+      inset -3px -3px 7px #1c2740;
+    overflow: hidden;
+  }
+
+  .clay-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background-image: linear-gradient(90deg, #6366f1, #a855f7 55%, #34d399);
+    box-shadow: 0 0 14px rgba(99, 102, 241, 0.6);
+    transition: width 0.25s ease;
+  }
+
+  /* ---- Misc ------------------------------------------------------ */
+  .clay-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.18), transparent);
+  }
+
+  .clay-text-gradient {
+    background-image: linear-gradient(120deg, #e2e8f0 0%, #a5b4fc 45%, #34d399 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .clay-skeleton {
+    border-radius: 1.5rem;
+    background: linear-gradient(90deg, #101827 25%, #17223a 50%, #101827 75%);
+    background-size: 200% 100%;
+    animation: clay-shimmer 1.8s linear infinite;
+  }
+
+  .clay-link {
+    color: #a5b4fc;
+    font-weight: 600;
+    transition: color 0.2s ease;
+  }
+
+  .clay-link:hover {
+    color: #c7d2fe;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   5. Light theme — warm clay surfaces, same clay language, no new deps.
+      Tailwind v4 utilities resolve colours from `--color-*` variables, so
+      re-mapping the `clay` scale automatically re-skins every
+      `bg-clay-*` / `text-clay-*` / `from-clay-*` class. Hard-coded dark
+      hexes in the recipes below are overridden explicitly.
+   ------------------------------------------------------------------ */
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Flip the clay scale so every clay utility follows the theme automatically
+     (Tailwind v4 utilities reference these vars). */
+  --color-clay-950: #fffdf8;
+  --color-clay-900: #fdf9f0;
+  --color-clay-850: #f8f2e5;
+  --color-clay-800: #f3ecdc;
+  --color-clay-750: #ece3cf;
+  --color-clay-700: #e2d7bf;
+  --color-clay-600: #cfc2a8;
+  --color-clay-500: #a89d86;
+  --color-clay-400: #877c68;
+  --color-clay-300: #6f6553;
+  --color-clay-200: #575046;
+  --color-clay-100: #44403c;
+  --color-clay-50: #292524;
+
+  /* Flat light mode: no shadows — depth comes from borders/gradients. */
+  --shadow-clay: none;
+  --shadow-clay-sm: none;
+  --shadow-clay-lg: none;
+  --shadow-clay-inset: none;
+  --shadow-clay-inset-sm: none;
+  --shadow-glow-indigo: none;
+  --shadow-glow-mint: none;
+  --shadow-glow-violet: none;
+  --shadow-glow-rose: none;
+}
+
+/* ---- Page chrome ------------------------------------------------- */
+[data-theme='light'] body {
+  background:
+    radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.1), transparent 60%),
+    radial-gradient(900px 480px at 88% 4%, rgba(52, 211, 153, 0.12), transparent 60%),
+    radial-gradient(1000px 620px at 50% 110%, rgba(168, 85, 247, 0.08), transparent 60%),
+    linear-gradient(180deg, #fdfaf2 0%, #f6efe1 100%);
+  color: #292524;
+}
+
+[data-theme='light'] ::selection {
+  background: rgba(99, 102, 241, 0.22);
+  color: #1c1917;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c9bfa9, #b3a78e);
+  border: 3px solid #f3ecdc;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-track {
+  background: #ece4d1;
+}
+
+/* ---- Surfaces ---------------------------------------------------- */
+[data-theme='light'] .clay-card {
+  background: linear-gradient(150deg, #fffdf8, #f7f0e0);
+  border-color: rgba(120, 100, 66, 0.18);
+}
+
+[data-theme='light'] .clay-card-hover:hover {
+  background: linear-gradient(150deg, #fffefb, #faf4e6);
+}
+
+[data-theme='light'] .clay-panel {
+  background: linear-gradient(165deg, #fffdf8 0%, #f8f1e2 100%);
+  border-color: rgba(120, 100, 66, 0.16);
+}
+
+[data-theme='light'] .clay-inset {
+  background: #f1e9d6;
+  border-color: rgba(120, 100, 66, 0.14);
+}
+
+[data-theme='light'] .clay-inset-sm {
+  background: #f1e9d6;
+  border-color: rgba(120, 100, 66, 0.12);
+}
+
+/* ---- White clay pills in light mode -----------------------------------
+   All `.clay-chip` pills ("Image", "MEGA", "Text snippet", timestamps,
+   "3 saved", user email, filter counts) use a white face and dark readable
+   text. The flat light theme intentionally uses no box-shadow. */
+[data-theme='light'] .clay-chip {
+  background-color: #ffffff;
+  background-image: linear-gradient(145deg, #ffffff 0%, #fdf8ec 100%);
+  border-color: rgba(120, 100, 66, 0.22);
+  color: #44403c;
+  box-shadow: none;
+}
+
+/* Plain pills without a tint (timestamps if untoned) use the same white. */
+
+/* ---- Buttons ----------------------------------------------------- */
+[data-theme='light'] .clay-btn {
+  box-shadow: none;
+}
+
+[data-theme='light'] .clay-btn-indigo,
+[data-theme='light'] .clay-btn-mint,
+[data-theme='light'] .clay-btn-violet,
+[data-theme='light'] .clay-btn-rose {
+  box-shadow: none;
+}
+
+[data-theme='light'] .clay-btn-ghost {
+  background: linear-gradient(150deg, #f3ecdc, #e9dfc8);
+  color: #575046;
+  border-color: rgba(120, 100, 66, 0.2);
+}
+
+[data-theme='light'] .clay-btn-ghost:hover:not(:disabled) {
+  color: #1c1917;
+}
+
+/* ---- Fields ------------------------------------------------------ */
+[data-theme='light'] .clay-field {
+  background: #fbf6ea;
+  border-color: rgba(120, 100, 66, 0.2);
+  color: #292524;
+}
+
+[data-theme='light'] .clay-field::placeholder {
+  color: #a89d86;
+}
+
+[data-theme='light'] .clay-field-label {
+  color: #575046;
+}
+
+/* ---- Tabs / dropzone / progress ---------------------------------- */
+[data-theme='light'] .clay-tab {
+  color: #877c68;
+}
+
+[data-theme='light'] .clay-tab:hover {
+  color: #44403c;
+}
+
+[data-theme='light'] .clay-tab-active {
+  color: #292524;
+}
+
+[data-theme='light'] .clay-dropzone {
+  background: #f6efe0;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+[data-theme='light'] .clay-dropzone:hover {
+  border-color: rgba(99, 102, 241, 0.65);
+}
+
+[data-theme='light'] .clay-dropzone-active {
+  background: #eef7f0;
+  border-color: #059669;
+  box-shadow: none;
+}
+
+[data-theme='light'] .clay-progress-track {
+  background: #e9dfc8;
+}
+
+[data-theme='light'] .clay-skeleton {
+  background: linear-gradient(90deg, #e9dfc8 25%, #f7f1e2 50%, #e9dfc8 75%);
+  background-size: 200% 100%;
+}
+
+/* ---- Text helpers ------------------------------------------------- */
+[data-theme='light'] .clay-text-gradient {
+  background-image: linear-gradient(120deg, #44403c 0%, #4338ca 50%, #047857 100%);
+}
+
+[data-theme='light'] .clay-link {
+  color: #4338ca;
+}
+
+[data-theme='light'] .clay-link:hover {
+  color: #3730a3;
+}
+
+[data-theme='light'] .clay-divider {
+  background: linear-gradient(90deg, transparent, rgba(120, 100, 66, 0.28), transparent);
+}
+
+/* ---- Navbar ------------------------------------------------------- */
+[data-theme='light'] header {
+  border-color: rgba(120, 100, 66, 0.16);
+}
+
+/* ---- Panel / card / field borders: cool slate hairlines become warm --- */
+[data-theme='light'] .clay-panel {
+  background: rgba(255, 253, 247, 0.72);
+  border-color: rgba(120, 100, 66, 0.18);
+}
+
+[data-theme='light'] .clay-card,
+[data-theme='light'] .clay-inset,
+[data-theme='light'] .clay-inset-sm,
+[data-theme='light'] .clay-field,
+[data-theme='light'] .clay-input,
+[data-theme='light'] .clay-textarea,
+[data-theme='light'] .clay-tab-track,
+[data-theme='light'] .clay-chip {
+  border-color: rgba(120, 100, 66, 0.18);
+}
+
+[data-theme='light'] .clay-input::placeholder,
+[data-theme='light'] .clay-textarea::placeholder {
+  color: #a39e93;
+}
+
+/* ---- Slate gradient badges keep dark ink on the flipped warm gradient - */
+[data-theme='light'] .from-clay-500.to-clay-700.text-white {
+  color: #44403c;
+}
+
+/* ---- Flat light mode: kill hard-coded dark box-shadows.
+        Pills and active tabs are excluded because they keep white clay shadows.
+        See the "Light pills" section below. ------------------------------- */
+[data-theme='light'] .clay-panel,
+[data-theme='light'] .clay-card,
+[data-theme='light'] .clay-card-hover:hover,
+[data-theme='light'] .clay-inset,
+[data-theme='light'] .clay-inset-sm,
+[data-theme='light'] .clay-btn-indigo,
+[data-theme='light'] .clay-btn-mint,
+[data-theme='light'] .clay-btn-violet,
+[data-theme='light'] .clay-btn-rose,
+[data-theme='light'] .clay-btn-ghost,
+[data-theme='light'] .clay-field,
+[data-theme='light'] .clay-field:focus,
+[data-theme='light'] .clay-field-invalid,
+[data-theme='light'] .clay-field-invalid:focus,
+[data-theme='light'] .clay-icon-badge,
+[data-theme='light'] .clay-tab-track,
+[data-theme='light'] .clay-dropzone,
+[data-theme='light'] .clay-dropzone-active,
+[data-theme='light'] .clay-progress-track,
+[data-theme='light'] .clay-progress-fill {
+  box-shadow: none;
+}
+
+/* ---- Slate accents: white-on-dark gradients become ink-on-cream --- */
+[data-theme='light'] .from-clay-500.to-clay-700 {
+  color: #44403c;
+}
+
+[data-theme='light'] .clay-icon-badge.from-clay-600 {
+  color: #575046;
+  box-shadow: none;
+}
+
+[data-theme='light'] .from-clay-600.to-clay-800.text-indigo-200 {
+  color: #4338ca;
+}
+
+/* ---- Light pills: every pill becomes solid white with readable dark ink.
+   Covers card badges, navbar badges, filter counts and timestamp pills.
+   The full double inner/outer clay shadow is kept intact. ---------------- */
+[data-theme='light'] .clay-chip,
+[data-theme='light'] .clay-chip[class*='bg-indigo-'],
+[data-theme='light'] .clay-chip[class*='bg-emerald-'],
+[data-theme='light'] .clay-chip[class*='bg-violet-'],
+[data-theme='light'] .clay-chip[class*='bg-rose-'],
+[data-theme='light'] .clay-chip[class*='bg-amber-'],
+[data-theme='light'] .clay-chip[class*='bg-sky-'],
+[data-theme='light'] .clay-chip[class*='bg-slate-'],
+[data-theme='light'] .clay-chip[class*='bg-zinc-'],
+[data-theme='light'] .clay-chip[class*='bg-neutral-'],
+[data-theme='light'] .clay-chip[class*='bg-stone-'],
+[data-theme='light'] .clay-chip[class*='bg-black'],
+[data-theme='light'] .clay-chip[class*='bg-clay-'] {
+  background-color: #ffffff;
+  background-image: linear-gradient(145deg, #ffffff 0%, #fdf8ec 100%);
+  border-color: rgba(120, 100, 66, 0.22);
+  color: #44403c;
+  box-shadow: none;
+}
+
+/* ---- Light filter pills: inactive pills stay white with the same double
+   clay shadow; the active pill keeps the stronger pressed clay shadow. --- */
+[data-theme='light'] .clay-tab {
+  background-color: #ffffff;
+  background-image: linear-gradient(145deg, #ffffff 0%, #fdf8ec 100%);
+  color: #575046;
+  border: 1px solid rgba(120, 100, 66, 0.22);
+  box-shadow: none;
+}
+
+[data-theme='light'] .clay-tab span {
+  color: #575046;
+}
+
+[data-theme='light'] .clay-chip.text-indigo-200 { color: #3730a3; }
+[data-theme='light'] .clay-chip.text-emerald-200 { color: #065f46; }
+[data-theme='light'] .clay-chip.text-violet-200 { color: #6b21a8; }
+[data-theme='light'] .clay-chip.text-rose-200 { color: #9f1239; }
+[data-theme='light'] .clay-chip.text-amber-200 { color: #92400e; }
+[data-theme='light'] .clay-chip.text-sky-200 { color: #075985; }
+[data-theme='light'] .clay-chip.text-clay-200 { color: #44403c; }
+
+[data-theme='light'] .clay-tab-active {
+  background: #ffffff;
+  background-image: linear-gradient(145deg, #ffffff 0%, #f3ecdc 100%);
+  box-shadow: none;
+}
+
+/* ---- Pastel-on-dark accents become readable ink tones ------------- */
+[data-theme='light'] .text-indigo-200 { color: #4338ca; }
+[data-theme='light'] .text-indigo-300 { color: #4f46e5; }
+[data-theme='light'] .text-emerald-200 { color: #047857; }
+[data-theme='light'] .text-emerald-300 { color: #059669; }
+[data-theme='light'] .text-violet-200 { color: #7e22ce; }
+[data-theme='light'] .text-violet-300 { color: #9333ea; }
+[data-theme='light'] .text-amber-200 { color: #b45309; }
+[data-theme='light'] .text-amber-300 { color: #d97706; }
+[data-theme='light'] .text-sky-200 { color: #0369a1; }
+[data-theme='light'] .text-sky-300 { color: #0284c7; }
+[data-theme='light'] .text-rose-200 { color: #be123c; }
+[data-theme='light'] .text-rose-300 { color: #e11d48; }
+
+/* ------------------------------------------------------------------
+   6. Accessibility: respect reduced-motion preferences
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
