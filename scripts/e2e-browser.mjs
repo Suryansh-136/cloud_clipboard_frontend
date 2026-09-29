@@ -16,6 +16,31 @@ const projectRoot = path.resolve(import.meta.dirname, '..')
 const artifactsDir = path.join(projectRoot, '.e2e-artifacts')
 const PORT = 4178
 const BASE = `http://localhost:${PORT}`
+const API_ORIGIN = (process.env.VITE_API_BASE_URL || 'https://cloud-clipboard-e1x6.onrender.com').replace(/\/+$/, '')
+
+/**
+ * The deployed backend allowlists only production frontend origins, so a page
+ * served from localhost gets "Disallowed CORS origin". Tests still hit the REAL
+ * API: Playwright forwards each request with an allowed Origin and re-attaches
+ * CORS headers for the local page. Override with E2E_ALLOWED_ORIGIN.
+ */
+const BACKEND_ALLOWED_ORIGIN =
+  process.env.E2E_ALLOWED_ORIGIN || 'https://cloud-clipboard-frontend.vercel.app'
+
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'host',
+  'content-length',
+  'content-encoding',
+  'accept-encoding',
+])
 
 const EMAIL = process.env.E2E_EMAIL
 const PASSWORD = process.env.E2E_PASSWORD
@@ -76,6 +101,91 @@ async function launchBrowser(executablePath) {
   throw new Error(`Could not launch any browser:\n  ${failures.join('\n  ')}`)
 }
 
+/**
+ * Render's free tier sleeps the API. Wake it before the UI run so the first
+ * live auth call is not the one paying the ~50s cold-start bill.
+ */
+async function warmBackend() {
+  const startedAt = Date.now()
+
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
+    try {
+      const response = await fetch(`${API_ORIGIN}/health`, {
+        signal: AbortSignal.timeout(30000),
+      })
+      if (response.ok) {
+        console.log(`backend : warm after ${Date.now() - startedAt}ms\n`)
+        return true
+      }
+    } catch {
+      /* sleeping or unreachable — retry */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+  }
+
+  console.log('backend : /health did not answer in time — continuing anyway\n')
+  return false
+}
+
+/**
+ * Test-only CORS bridge. `page.route` handlers (like the guest-lookup mock) run
+ * before context routes, so deliberately mocked endpoints are unaffected.
+ */
+async function installCorsBridge(context) {
+  await context.route(`${API_ORIGIN}/**`, async (route) => {
+    const request = route.request()
+    const requestHeaders = request.headers()
+    const corsHeaders = {
+      'access-control-allow-origin': BASE,
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+      'access-control-allow-headers':
+        requestHeaders['access-control-request-headers'] || 'content-type, authorization, accept',
+      'access-control-max-age': '600',
+    }
+
+    if (request.method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: corsHeaders })
+      return
+    }
+
+    const forwardHeaders = {}
+    for (const [name, value] of Object.entries(requestHeaders)) {
+      if (!HOP_BY_HOP_HEADERS.has(name.toLowerCase())) forwardHeaders[name] = value
+    }
+    forwardHeaders.origin = BACKEND_ALLOWED_ORIGIN
+
+    try {
+      const response = await fetch(request.url(), {
+        method: request.method(),
+        headers: forwardHeaders,
+        body: ['GET', 'HEAD'].includes(request.method()) ? undefined : request.postDataBuffer(),
+        redirect: 'manual',
+      })
+
+      const responseHeaders = { ...corsHeaders }
+      for (const [name, value] of response.headers.entries()) {
+        const lower = name.toLowerCase()
+        if (HOP_BY_HOP_HEADERS.has(lower) || lower.startsWith('access-control-')) continue
+        responseHeaders[name] = value
+      }
+
+      await route.fulfill({
+        status: response.status,
+        headers: responseHeaders,
+        body: Buffer.from(await response.arrayBuffer()),
+      })
+    } catch (error) {
+      console.log(`      ⚠ CORS bridge failed: ${request.method()} ${request.url()} — ${error.message}`)
+      await route.fulfill({
+        status: 502,
+        headers: { ...corsHeaders, 'content-type': 'application/json' },
+        body: JSON.stringify({ detail: `E2E CORS bridge could not reach the backend: ${error.message}` }),
+      })
+    }
+  })
+}
+
 async function run() {
   const executablePath = BROWSER_CANDIDATES.find((candidate) => existsSync(candidate))
   if (!executablePath) {
@@ -86,6 +196,7 @@ async function run() {
   }
 
   mkdirSync(artifactsDir, { recursive: true })
+  await warmBackend()
 
   const server = await preview({
     root: projectRoot,
@@ -95,21 +206,42 @@ async function run() {
 
   const { browser } = await launchBrowser(executablePath)
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+  await installCorsBridge(context)
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE })
 
   const page = await context.newPage()
 
   const consoleErrors = []
   page.on('console', (message) => {
-    if (message.type() === 'error' && !message.text().includes('favicon')) {
+    // The guest invalid-key case is mocked on purpose, so its failed network
+    // entry (logged by the browser) is not an app console error.
+    const source = message.location()?.url ?? ''
+    if (
+      message.type() === 'error' &&
+      !message.text().includes('favicon') &&
+      !source.includes('/items/public/')
+    ) {
       consoleErrors.push(message.text())
     }
   })
   page.on('pageerror', (error) => consoleErrors.push(`pageerror: ${error.message}`))
+  page.on('requestfailed', (request) => {
+    if (request.url().startsWith(API_ORIGIN)) {
+      console.log(
+        `      ⚠ request failed: ${request.method()} ${request.url()} — ${request.failure()?.errorText ?? 'unknown'}`,
+      )
+    }
+  })
 
   const apiFailures = []
   page.on('response', (response) => {
-    if (response.url().includes('cloud-clipboard-e1x6.onrender.com') && response.status() >= 400) {
+    // The guest lookup is deliberately mocked (including its error case), so it
+    // is excluded from the live-API failure counter.
+    if (
+      response.url().startsWith(API_ORIGIN) &&
+      !response.url().includes('/items/public/') &&
+      response.status() >= 400
+    ) {
       apiFailures.push(`${response.status()} ${response.request().method()} ${response.url()}`)
     }
   })
@@ -161,6 +293,89 @@ async function run() {
     await assertAuthThemeToggle('login')
     await screenshot(page, 'login-theme')
 
+    /* ---------- 1b. guest lookup (public route mocked, no backend data) --- */
+    let guestResponse = {
+      status: 200,
+      body: [
+        {
+          id: 9001,
+          user_id: 3,
+          content_type: 'text',
+          text_payload: 'Shared clip from the E2E mock\nsecond line',
+          file_path: null,
+          created_at: '2026-09-23T11:22:53.424263',
+        },
+        {
+          id: 9002,
+          user_id: 3,
+          content_type: 'file',
+          text_payload: 'guest-demo.txt',
+          file_path: 'https://mega.co.nz/#!GuestDemo!SharedFile',
+          created_at: null,
+        },
+      ],
+    }
+
+    await page.route('**/api/v1/items/public/**', (route) =>
+      route.fulfill({
+        status: guestResponse.status,
+        contentType: 'application/json',
+        headers: { 'access-control-allow-origin': '*' },
+        body: JSON.stringify(guestResponse.body),
+      }),
+    )
+
+    await page.getByRole('button', { name: /Guest Access/ }).click()
+    await page.waitForSelector('#shareKey')
+    check('guest access panel opens on the login page', await page.locator('#shareKey').isVisible())
+
+    await page.fill('#shareKey', 'clip-e2e-demo')
+    await page.getByRole('button', { name: 'View Clips' }).click()
+    await page.waitForSelector('text=Shared clip from the E2E mock', { timeout: 15000 })
+    check('guest clips render inline without navigating away', page.url().endsWith('/login'))
+    check(
+      'guest file clip renders its provider link',
+      (await page
+        .locator('article')
+        .filter({ hasText: 'guest-demo.txt' })
+        .locator('a[href^="https://mega"]')
+        .count()) > 0,
+    )
+    await screenshot(page, 'guest-access')
+
+    const guestTextCard = page.locator('article').filter({ hasText: 'Shared clip from the E2E mock' })
+    await guestTextCard.getByRole('button', { name: 'Copy Text' }).click()
+    check(
+      'guest copy button flips to its "Copied!" state',
+      await guestTextCard
+        .getByRole('button', { name: 'Copied!' })
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false),
+    )
+    const guestClipboard = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')
+    check(
+      'guest copy writes the exact clip body',
+      guestClipboard === 'Shared clip from the E2E mock\nsecond line',
+      JSON.stringify(guestClipboard).slice(0, 70),
+    )
+
+    await page.getByRole('button', { name: 'Clear / Back' }).click()
+    await page.waitForSelector('#shareKey', { state: 'detached' })
+    check('Clear / Back returns to the login form view', await page.locator('#email').isVisible())
+
+    guestResponse = { status: 404, body: { detail: 'Invalid or expired share key' } }
+    await page.getByRole('button', { name: /Guest Access/ }).click()
+    await page.waitForSelector('#shareKey')
+    await page.fill('#shareKey', 'wrong-key')
+    await page.getByRole('button', { name: 'View Clips' }).click()
+    await page.waitForSelector('text=Invalid Share Key', { timeout: 15000 })
+    check('invalid share key shows a friendly error', true)
+    await page.getByRole('button', { name: 'Clear / Back' }).click()
+    await page.waitForSelector('#shareKey', { state: 'detached' })
+
+    await page.unroute('**/api/v1/items/public/**')
+
     await page.locator('.clay-tab', { hasText: 'Create account' }).click()
     await page.waitForSelector('#confirmPassword')
     await assertAuthThemeToggle('register')
@@ -171,8 +386,36 @@ async function run() {
       await page.fill('#email', credentials.email)
       await page.fill('#password', credentials.password)
       await page.fill('#confirmPassword', credentials.password)
+
+      const registerResponsePromise = page.waitForResponse(
+        (response) => response.url().includes('/api/v1/auth/register'),
+        { timeout: 120000 },
+      )
       await page.locator('form').getByRole('button', { name: 'Create account' }).click()
-      check('registered a new account through the UI', true, credentials.email)
+      const registerResponse = await registerResponsePromise.catch(() => null)
+
+      let registerDetail = credentials.email
+      if (!registerResponse) {
+        registerDetail = `no response from /auth/register — ${credentials.email}`
+      } else if (!registerResponse.ok()) {
+        const body = (await registerResponse.text().catch(() => '')).slice(0, 140)
+        registerDetail = `${registerResponse.status()} ${body}`
+      }
+
+      if (!registerResponse?.ok()) {
+        const diagnostics = await page.evaluate(() => ({
+          email: document.querySelector('#email')?.value ?? null,
+          passwordLength: document.querySelector('#password')?.value?.length ?? 0,
+          confirmLength: document.querySelector('#confirmPassword')?.value?.length ?? 0,
+          alert: document.querySelector('[role="alert"]')?.textContent?.trim() ?? null,
+        }))
+        console.log(`      register diagnostics: ${JSON.stringify(diagnostics)}`)
+        console.log(`      console errors: ${JSON.stringify(consoleErrors.slice(-6))}`)
+        console.log(`      api failures: ${JSON.stringify(apiFailures.slice(-6))}`)
+        await screenshot(page, 'register-error')
+      }
+
+      check('registered a new account through the UI', Boolean(registerResponse?.ok()), registerDetail)
     } else {
       await page.locator('.clay-tab', { hasText: 'Sign in' }).click()
       await page.waitForSelector('#confirmPassword', { state: 'detached' })

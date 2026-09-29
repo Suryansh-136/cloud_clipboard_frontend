@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 
 import { AuthPage } from '../src/components/AuthPage'
 import { ErrorBoundary } from '../src/components/ErrorBoundary'
+import { GuestClipLookup, GuestClipResults } from '../src/components/GuestClipLookup'
 import { ItemCard } from '../src/components/ItemCard'
 import { Navbar } from '../src/components/Navbar'
 import { ProtectedRoute } from '../src/components/ProtectedRoute'
@@ -54,6 +55,26 @@ const SAMPLE_ROWS = [
   },
 ]
 
+/** Rows shaped exactly like the live API's public `ItemOut`. */
+const GUEST_ROWS = [
+  {
+    id: 101,
+    user_id: 3,
+    content_type: 'text',
+    text_payload: 'Guest clip one\nsecond line from the share key',
+    file_path: null,
+    share_key: 'clip-smoke-demo',
+  },
+  {
+    id: 102,
+    user_id: 3,
+    content_type: 'file',
+    text_payload: 'guest-demo.png',
+    file_path: 'https://mega.co.nz/#!GuestDemoKey!SharedFile',
+    share_key: 'clip-smoke-demo',
+  },
+]
+
 export function renderAll() {
   const items = normalizeItems(SAMPLE_ROWS)
 
@@ -97,5 +118,7 @@ export function renderAll() {
       ),
     })),
     navbar: withRouter(<Navbar />, '/dashboard'),
+    guestLookup: renderToString(<GuestClipLookup />),
+    guestResults: renderToString(<GuestClipResults clips={normalizeItems(GUEST_ROWS)} onCopy={() => {}} />),
   }
 }

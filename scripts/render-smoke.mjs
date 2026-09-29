@@ -74,6 +74,24 @@ try {
     'register page renders the shared theme switcher',
     pages.register.includes('Switch to light mode') || pages.register.includes('Switch to dark mode'),
   )
+  check(
+    'login page offers the guest share-key panel',
+    pages.login.includes('Guest Access') && !pages.register.includes('Guest Access'),
+  )
+  check(
+    'guest panel renders the key field and action',
+    result.guestLookup.includes('Enter Share Key') &&
+      result.guestLookup.includes('View Clips') &&
+      result.guestLookup.includes('Clip'),
+  )
+  check(
+    'guest results render text + file clips with copy actions',
+    result.guestResults.includes('Guest clip one') &&
+      result.guestResults.includes('Copy Text') &&
+      result.guestResults.includes('guest-demo.png') &&
+      result.guestResults.includes('Copy Link') &&
+      result.guestResults.includes('MEGA'),
+  )
 
   check('dashboard renders navbar + logout', pages.dashboard.includes('Cloud ClipBoard') && pages.dashboard.includes('Logout'))
   check(

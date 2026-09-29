@@ -20,6 +20,7 @@ import { ClayButton } from './ui/ClayButton'
 import { ThemeToggleButton } from './ThemeToggleButton'
 import { ClayIconBadge } from './ui/ClayIconBadge'
 import { ClayInput } from './ui/ClayField'
+import { GuestClipLookup } from './GuestClipLookup'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 6
@@ -44,6 +45,7 @@ export function AuthPage({ mode = 'login' }) {
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [guestOpen, setGuestOpen] = useState(false)
 
   const redirectTo = location.state?.from || '/dashboard'
 
@@ -52,6 +54,7 @@ export function AuthPage({ mode = 'login' }) {
     setForm({ email: '', password: '', confirmPassword: '' })
     setErrors({})
     setShowPassword(false)
+    setGuestOpen(false)
   }, [mode])
 
   if (status === 'authenticated') {
@@ -285,6 +288,30 @@ export function AuthPage({ mode = 'login' }) {
               {isLogin ? 'Create an account' : 'Sign in instead'}
             </button>
           </p>
+
+          {isLogin ? (
+            <div className="mt-6">
+              <div className="clay-divider" />
+
+              <ClayButton
+                variant="ghost"
+                size="md"
+                icon={KeyRound}
+                className="mt-4 w-full"
+                onClick={() => setGuestOpen((previous) => !previous)}
+                aria-expanded={guestOpen}
+                aria-controls="guest-access-panel"
+              >
+                {guestOpen ? 'Hide Guest Access' : 'Guest Access — Have a share key?'}
+              </ClayButton>
+
+              {guestOpen ? (
+                <div id="guest-access-panel" className="clay-inset mt-4 rounded-3xl p-4 sm:p-5">
+                  <GuestClipLookup onClose={() => setGuestOpen(false)} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <p
             className="mt-4 truncate text-center font-mono text-[0.68rem] text-clay-500"
