@@ -1,8 +1,9 @@
-import { CloudUpload, FileText, Layers, LifeBuoy, Sparkles, Type } from 'lucide-react'
+import { CloudUpload, Layers, Sparkles, Type } from 'lucide-react'
 
 import { ActionBox } from '../components/ActionBox'
 import { ItemsFeed } from '../components/ItemsFeed'
 import { Navbar } from '../components/Navbar'
+import { ShareLinkWidget } from '../components/ShareLinkWidget'
 import { ClayIconBadge } from '../components/ui/ClayIconBadge'
 import { useAuth } from '../context/AuthContext'
 import { useItems } from '../hooks/useItems'
@@ -48,38 +49,6 @@ function StatsPanel({ counts, user }) {
   )
 }
 
-function TipsPanel() {
-  return (
-    <section className="clay-panel rounded-clay animate-pop p-5 sm:p-6">
-      <div className="flex items-center gap-3">
-        <ClayIconBadge icon={LifeBuoy} gradient="slate" size="md" />
-        <h2 className="text-sm font-extrabold text-clay-50">Bridge tips</h2>
-      </div>
-
-      <ul className="mt-4 space-y-3 text-xs leading-relaxed text-clay-300">
-        <li className="flex gap-2">
-          <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-300" aria-hidden="true" />
-          <span>
-            Snippets are stored as raw text — the feed labels them from their first line because the
-            API keeps no title column.
-          </span>
-        </li>
-        <li className="flex gap-2">
-          <CloudUpload className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" aria-hidden="true" />
-          <span>
-            Files are pushed to the storage the backend is connected to; we keep its share link so
-            you can download them from anywhere.
-          </span>
-        </li>
-        <li className="flex gap-2">
-          <Layers className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
-          <span>Deleting asks for confirmation first — nothing disappears with a single stray click.</span>
-        </li>
-      </ul>
-    </section>
-  )
-}
-
 /** Protected home screen: navbar, clay action box, stats and the items feed. */
 export function Dashboard() {
   const { user } = useAuth()
@@ -111,7 +80,7 @@ export function Dashboard() {
 
           <aside className="space-y-6">
             <StatsPanel counts={counts} user={user} />
-            <TipsPanel />
+            <ShareLinkWidget />
           </aside>
         </div>
 

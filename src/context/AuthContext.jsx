@@ -36,6 +36,13 @@ export function AuthProvider({ children }) {
     return profile
   }, [])
 
+  /**
+   * Merge a patch into the cached profile (for example the share key returned by
+   * `POST /auth/generate_share_key`, which `/auth/me` does not expose).
+   */
+  const updateUser = useCallback((patch) => {
+    setUser((previous) => (previous ? { ...previous, ...patch } : previous))
+  }, [])
   const signOut = useCallback(
     ({ silent = false } = {}) => {
       resetSession()
@@ -133,9 +140,10 @@ export function AuthProvider({ children }) {
       signUp,
       signOut,
       reloadProfile,
+      updateUser,
       getErrorMessage: getApiErrorMessage,
     }),
-    [token, user, status, signIn, signUp, signOut, reloadProfile],
+    [token, user, status, signIn, signUp, signOut, reloadProfile, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

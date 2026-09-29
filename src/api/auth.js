@@ -42,3 +42,12 @@ export async function fetchCurrentUser({ skipAuthRedirect = true } = {}) {
   const { data } = await api.get(`${AUTH_BASE}/me`, { skipAuthRedirect })
   return data
 }
+/**
+ * Mint (or rotate) the signed-in user's public share key. The Bearer token is
+ * added by the request interceptor.
+ * POST /api/v1/auth/generate_share_key returns UserOut with share_key.
+ */
+export async function generateShareKey() {
+  const { data } = await api.post(`${AUTH_BASE}/generate_share_key`)
+  return data
+}

@@ -80,6 +80,7 @@ cloud_clipboard_frontend/
     │   ├── AuthPage.jsx        # /login + /register (one animated card)
     │   ├── GuestClipLookup.jsx # Guest Access share-key lookup + inline clip list
     │   ├── ThemeToggleButton.jsx # shared light/dark switch (auth + navbar)
+    │   ├── ShareLinkWidget.jsx  # public share key widget (dashboard)
     │   ├── ProtectedRoute.jsx  # redirects anonymous users, clay session loader
     │   ├── Navbar.jsx          # logo badge · sync time · email badge · logout
     │   ├── ActionBox.jsx       # Text Snippet ⟷ Media / File Upload tabs
@@ -154,7 +155,7 @@ fires a `cloud-clipboard:unauthorized` event and the auth context signs the user
 | `GET` | `/api/v1/items/api/v1/items/{id}/download` | — | Backend download proxy (public route) |
 | `DELETE` | `/api/v1/items/{id}` | — | Delete an item |
 | `GET` | `/api/v1/items/public/{share_key}` | — | Guest share-key lookup (no auth, returns `ItemOut[]`) |
-| `POST` | `/api/v1/auth/generate_share_key` | — | Mint/replace the signed-in user's `share_key` (used via `/docs`, no UI yet) |
+| `POST` | `/api/v1/auth/generate_share_key` | — | Mint/replace the signed-in user's `share_key` (Dashboard widget + `/docs`) |
 
 ### ⚠️ Where the real API differs from the original spec
 
@@ -218,6 +219,11 @@ These were discovered by probing the deployed service and are handled by the cod
 - **File form:** click-or-drag dropzone that turns mint while dragging, keyboard operable
   (`Enter`/`Space`), a staged-file chip with size and type, a 100 MB soft warning, a gradient upload
   progress meter and an `Upload File` button.
+- **Public Share Link widget:** replaces the old Bridge tips card. Without a key it shows
+  **Generate Public Key** (authenticated `POST /auth/generate_share_key`, with a spinner while
+  loading); the returned key is merged into the auth context and cached per user, switching the
+  card to a read-only key field with a **Copy Key** button and an inline "Copied!" state. Paste
+  the key into **Guest Access** on the login page to share the bridge read-only.
 - **Feed:** search box + `All / Text / Files` filter with live counts, shimmering clay skeletons,
   a "bridge is empty" state, a "nothing matches" state with a clear-filters action and an error state
   with retry that explains cold starts.
@@ -232,9 +238,9 @@ These were discovered by probing the deployed service and are handled by the cod
 
 | Check | Result |
 | --- | --- |
-| `npm run build` | ✅ 1 972 modules, no warnings |
-| `npm run smoke` | ✅ 28/28 render assertions (all pages, all three item shapes, guest panel + results) |
-| `npm run e2e` | ✅ **36/36 in a real browser** — headless Edge driving the built bundle, incl. the Guest Access flow |
+| `npm run build` | ✅ 1 973 modules, no warnings |
+| `npm run smoke` | ✅ 30/30 render assertions (pages, item shapes, guest panel, dashboard share widget) |
+| `npm run e2e` | ✅ **44/44 in a real browser** — headless Edge driving the built bundle, incl. the share-key widget + Guest Access flows |
 | Dev server boot | ✅ `/`, `/src/main.jsx`, `/src/index.css` all HTTP 200 |
 | Generated CSS | ✅ every `clay-*` class, `bg-linear-to-br` gradient and keyframe present |
 | Live API end-to-end | ✅ register → login → me → create text → upload → list → delete (14 requests) |
@@ -244,6 +250,7 @@ These were discovered by probing the deployed service and are handled by the cod
 | Upload + delete | ✅ real MEGA upload, both cards deleted, empty state restored |
 | Hygiene | ✅ zero console errors, zero failed API calls |
 | Guest endpoint on Render | ✅ bad key → `404 {"detail":"Invalid or expired share key"}` (no longer 500) |
+| Share key widget | Generated a real 36-character key, copied it to the OS clipboard, and restored it after a hard reload |
 
 Three genuine bugs were found by the runtime tests (the browser run caught the third) and fixed:
 
@@ -291,6 +298,9 @@ Against the **built bundle** served from `dist/` it asserts:
     shows the friendly “Invalid Share Key” error — the public route is mocked, so no live data is
     touched
 
+11. the Dashboard Public Share Link card generates a real key through the live API, shows it in a
+    read-only field, copies the exact key to the OS clipboard, survives a hard reload, and that
+    same key returns `200` from the public clips endpoint after logout
 > **CORS bridge (test-only).** The deployed API allowlists only production frontend origins, so a
 > page served from localhost would fail preflight. The harness forwards browser API calls with an
 > allowed `Origin` (`E2E_ALLOWED_ORIGIN`, default the Vercel URL) and re-attaches CORS headers for
@@ -341,4 +351,8 @@ Then set `VITE_API_BASE_URL` in the host's environment variables if you are not 
   with a test-only CORS bridge.
 - **Where do I get a share key?** `POST /api/v1/auth/generate_share_key` with a Bearer token
   (Swagger `/docs` or curl) returns `UserOut.share_key`; paste that key into the Guest Access panel
-  on `/login`. There is no dashboard UI for generating or copying it yet.
+  on `/login`, or generate one from the Dashboard's **Public Share Link** card.
+- **A regenerated share key replaces the old one.** `POST /auth/generate_share_key` rotates the
+  key, and `/auth/me` does not return `share_key`, so the widget caches the last key it minted in
+  `localStorage` under `cloud-clipboard:share_key:(user id)`. Clearing site data (or using another
+  browser) brings back the Generate state, and generating again invalidates links already shared.

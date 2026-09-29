@@ -445,6 +445,33 @@ async function run() {
     check('session is restored after a hard reload', page.url().includes('/dashboard'))
     await screenshot(page, 'dashboard-empty')
 
+    /* ---------- 3a. public share key widget ---------- */
+    check(
+      'share key widget replaced the Bridge tips card',
+      (await page.getByRole('heading', { name: 'Public Share Link' }).count()) === 1 &&
+        (await page.getByText('Bridge tips').count()) === 0,
+    )
+
+    await page.getByRole('button', { name: 'Generate Public Key' }).click()
+    const shareKeyInput = page.locator('#publicShareKey')
+    await shareKeyInput.waitFor({ state: 'visible', timeout: 45000 })
+    const shareKey = await shareKeyInput.inputValue()
+    check('generated share key is displayed in a read-only field', shareKey.length !== 0, shareKey.length + ' chars')
+    check('share key field is read-only', (await shareKeyInput.getAttribute('readonly')) !== null)
+
+    await page.getByRole('button', { name: 'Copy Key' }).click()
+    check(
+      'share key copy button shows feedback',
+      await page
+        .getByRole('button', { name: 'Copied!' })
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false),
+    )
+    const clipboardKey = (await page.evaluate(() => navigator.clipboard.readText())).trim()
+    check('clipboard holds the exact share key', clipboardKey === shareKey, clipboardKey.length + ' chars')
+    await screenshot(page, 'share-key-widget')
+
     /* ---------- 3b. light/dark theme toggle (Navbar, next to logout) --- */
     const themeToggle = page.locator('header').getByRole('button', { name: /Switch to (light|dark) mode/ })
     const themeBefore = await page.evaluate(() => document.documentElement.dataset.theme || 'dark')
@@ -464,6 +491,8 @@ async function run() {
         (await page.evaluate(() => localStorage.getItem('theme'))) === themeAfter,
       themeAfter,
     )
+    check('share key survives a hard reload', (await page.locator('#publicShareKey').inputValue()) === shareKey)
+
     await screenshot(page, 'dashboard-theme')
     // Switch back so the rest of the flow runs in the default palette.
     await page.locator('header').getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
@@ -541,6 +570,24 @@ async function run() {
     await page.waitForURL('**/login', { timeout: 45000 })
     check('logout returns to the login screen', page.url().endsWith('/login'))
     check('logout cleared the stored token', (await page.evaluate(() => localStorage.getItem('token'))) === null)
+
+    /* ---------- 8b. live guest lookup with the real generated key ---------- */
+    await page.getByRole('button', { name: /Guest Access/ }).click()
+    await page.waitForSelector('#shareKey')
+    await page.fill('#shareKey', shareKey)
+
+    const publicLookup = page.waitForResponse(
+      (response) => response.url().includes('/items/public/') && response.request().method() === 'GET',
+      { timeout: 45000 },
+    )
+    await page.getByRole('button', { name: 'View Clips' }).click()
+    const publicResponse = await publicLookup.catch(() => null)
+    check(
+      'real share key returns live clips from the public endpoint',
+      publicResponse?.status() === 200,
+      publicResponse ? `${publicResponse.status()}` : 'no response',
+    )
+    check('guest lookup stays on the login page', page.url().endsWith('/login'))
 
     /* ---------- 9. hygiene ---------- */
     check('no uncaught errors in the browser console', consoleErrors.length === 0, consoleErrors.join(' | ').slice(0, 300))

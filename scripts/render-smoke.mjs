@@ -93,6 +93,17 @@ try {
       result.guestResults.includes('MEGA'),
   )
 
+  check(
+    'dashboard replaces Bridge tips with the public share widget',
+    pages.dashboard.includes('Public Share Link') &&
+      pages.dashboard.includes('Generate Public Key') &&
+      !pages.dashboard.includes('Bridge tips'),
+  )
+  check(
+    'share widget explains the guest flow',
+    pages.dashboard.includes('Let guests read your clips without an account.') &&
+      pages.dashboard.includes('no sign-in'),
+  )
   check('dashboard renders navbar + logout', pages.dashboard.includes('Cloud ClipBoard') && pages.dashboard.includes('Logout'))
   check(
     'navbar renders a theme switcher',
